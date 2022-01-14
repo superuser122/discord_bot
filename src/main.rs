@@ -2,6 +2,7 @@ use serenity::{ async_trait, model::{ channel::Message, gateway::Ready}, prelude
 use std::io::prelude::*;
 use std::env;
 use std::fs::OpenOptions;
+use std::error::Error;
 
 
 
@@ -15,23 +16,37 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
     }
 
-    async fn message(&self, _ctx: Context, msg: Message) {
+    async fn message(&self, ctx: Context, msg: Message) {
         if msg.content.contains("!bug") {
-            write_to_file(msg);
+            match write_to_file(&msg){
+                Ok(m) =>{
+                    let _ = m
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.content("Hello, World!")
+                    })
+                    .await;
+
+                },
+                Err(e) =>{
+
+                }
+            }
         }
     }
 }
 
 //Self explanatory function
-fn write_to_file(msg: Message){
+fn write_to_file(msg: &Message) -> Result<&Message, Box<dyn Error + Send + Sync>>{
     let path = format!("./{}.txt", msg.channel_id.to_string());
     let content = msg.content.replace("!bug ", "");
-    let text =format!("Από: {}\nΗμ/νία: {}\nΜήνυμα:{}\n\n", msg.author.name, msg.timestamp.to_string(), content);
+    let text =format!("From: {}\nDate: {}\nMessage:{}\n\n", msg.author.name, msg.timestamp.to_string(), content);
     let mut file = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(path).unwrap();
-    file.write_all(text.as_bytes()).unwrap();
+            .open(path)?;
+    file.write_all(text.as_bytes())?;
+    Ok(msg)
 }
 
 #[tokio::main]
