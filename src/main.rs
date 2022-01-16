@@ -17,27 +17,24 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
+
         if msg.content.contains("!bug") {
-            match write_to_file(&msg){
-                Ok(m) =>{
-                    let _ = m
-                    .channel_id
-                    .send_message(&ctx.http, |m| {
-                        m.content("Hello, World!")
-                    })
-                    .await;
+            let response = match write_to_file(&msg){
+                Ok(_) => String::from("Bug report was saved"),
+                Err(e) => String::from(format!("Error saving bug report{}", e.to_string()))
+            };
 
-                },
-                Err(e) =>{
-
-                }
+            let r = msg.channel_id.send_message(&ctx.http, |m| {
+                m.content(response)}).await;
+            if let Err(why) = r {
+                println!("Bot response error: {:?}", why);
             }
         }
     }
 }
 
 //Self explanatory function
-fn write_to_file(msg: &Message) -> Result<&Message, Box<dyn Error + Send + Sync>>{
+fn write_to_file(msg: &Message) -> Result<(), Box<dyn Error + Send + Sync>>{
     let path = format!("./{}.txt", msg.channel_id.to_string());
     let content = msg.content.replace("!bug ", "");
     let text =format!("From: {}\nDate: {}\nMessage:{}\n\n", msg.author.name, msg.timestamp.to_string(), content);
@@ -46,7 +43,7 @@ fn write_to_file(msg: &Message) -> Result<&Message, Box<dyn Error + Send + Sync>
             .create(true)
             .open(path)?;
     file.write_all(text.as_bytes())?;
-    Ok(msg)
+    Ok(())
 }
 
 #[tokio::main]
