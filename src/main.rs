@@ -21,7 +21,7 @@ impl EventHandler for Handler {
         if msg.content.contains("!bug") {
             let response = match write_to_file(&msg){
                 Ok(_) => String::from("Bug report was saved"),
-                Err(e) => String::from(format!("Error saving bug report{}", e.to_string()))
+                Err(e) => format!("Error saving bug report{}", e.to_string())
             };
 
             let r = msg.channel_id.send_message(&ctx.http, |m| {
